@@ -7,6 +7,19 @@ from src.entities.player import Player
 from config import PLAYER_SPEED, PLAYER_SIZE, PLAYER_LIVES, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
+class MockKeys:
+    """Mock keyboard keys for testing"""
+    def __init__(self, **kwargs):
+        # Map key names to pygame key constants
+        self.keys = {}
+        for key_name, value in kwargs.items():
+            if hasattr(pygame, key_name):
+                self.keys[getattr(pygame, key_name)] = value
+            
+    def __getitem__(self, key):
+        return self.keys.get(key, False)
+
+
 class TestPlayer(unittest.TestCase):
     """Test cases for Player class"""
     
@@ -30,24 +43,21 @@ class TestPlayer(unittest.TestCase):
         
     def test_movement_left(self):
         """Test player moves left"""
-        initial_x = self.player.rect.x
-        keys = {pygame.K_LEFT: True, pygame.K_RIGHT: False, 
-                pygame.K_UP: False, pygame.K_DOWN: False}
+        initial_centerx = self.player.rect.centerx
+        keys = MockKeys(K_LEFT=True, K_RIGHT=False, K_UP=False, K_DOWN=False, K_a=False, K_d=False, K_w=False, K_s=False)
         self.player.update(keys, SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.assertLess(self.player.rect.x, initial_x)
+        self.assertLess(self.player.rect.centerx, initial_centerx)
         
     def test_movement_right(self):
         """Test player moves right"""
-        initial_x = self.player.rect.x
-        keys = {pygame.K_LEFT: False, pygame.K_RIGHT: True,
-                pygame.K_UP: False, pygame.K_DOWN: False}
+        initial_centerx = self.player.rect.centerx
+        keys = MockKeys(K_LEFT=False, K_RIGHT=True, K_UP=False, K_DOWN=False, K_a=False, K_d=False, K_w=False, K_s=False)
         self.player.update(keys, SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.assertGreater(self.player.rect.x, initial_x)
+        self.assertGreater(self.player.rect.centerx, initial_centerx)
         
     def test_diagonal_normalization(self):
         """Test diagonal movement is normalized (BUG-001 fix)"""
-        keys = {pygame.K_LEFT: True, pygame.K_RIGHT: False,
-                pygame.K_UP: True, pygame.K_DOWN: False}
+        keys = MockKeys(K_LEFT=True, K_RIGHT=False, K_UP=True, K_DOWN=False, K_a=False, K_d=False, K_w=False, K_s=False)
         
         # Move multiple times to accumulate effect
         for _ in range(10):
@@ -61,16 +71,14 @@ class TestPlayer(unittest.TestCase):
     def test_boundary_left(self):
         """Test player cannot move off left boundary"""
         self.player.rect.left = 0
-        keys = {pygame.K_LEFT: True, pygame.K_RIGHT: False,
-                pygame.K_UP: False, pygame.K_DOWN: False}
+        keys = MockKeys(K_LEFT=True, K_RIGHT=False, K_UP=False, K_DOWN=False, K_a=False, K_d=False, K_w=False, K_s=False)
         self.player.update(keys, SCREEN_WIDTH, SCREEN_HEIGHT)
         self.assertGreaterEqual(self.player.rect.left, 0)
         
     def test_boundary_right(self):
         """Test player cannot move off right boundary"""
         self.player.rect.right = SCREEN_WIDTH
-        keys = {pygame.K_LEFT: False, pygame.K_RIGHT: True,
-                pygame.K_UP: False, pygame.K_DOWN: False}
+        keys = MockKeys(K_LEFT=False, K_RIGHT=True, K_UP=False, K_DOWN=False, K_a=False, K_d=False, K_w=False, K_s=False)
         self.player.update(keys, SCREEN_WIDTH, SCREEN_HEIGHT)
         self.assertLessEqual(self.player.rect.right, SCREEN_WIDTH)
         
@@ -101,8 +109,11 @@ class TestPlayer(unittest.TestCase):
         
     def test_can_shoot_cooldown(self):
         """Test shooting cooldown works"""
+        # Set last_shot to far past to allow immediate shot
+        self.player.last_shot = pygame.time.get_ticks() - 10000
         self.assertTrue(self.player.can_shoot())
-        self.assertFalse(self.player.can_shoot())  # Immediately after should fail
+        # Should be False immediately after (cooldown active)
+        self.assertFalse(self.player.can_shoot())
         
     def test_to_dict(self):
         """Test serialization"""

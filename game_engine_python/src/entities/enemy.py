@@ -39,7 +39,9 @@ class Enemy(pygame.sprite.Sprite):
         elif self.pattern == 'zigzag':
             # Zigzag movement
             self.rect.y += self.speed
-            self.rect.x = self.start_x + int(self.amplitude * pygame.math.sin(self.frequency * self.time))
+            # Use math.sin instead of pygame.math.sin
+            import math
+            self.rect.x = self.start_x + int(self.amplitude * math.sin(self.frequency * self.time))
         elif self.pattern == 'chase':
             # Move toward player (simplified)
             self.rect.y += self.speed
